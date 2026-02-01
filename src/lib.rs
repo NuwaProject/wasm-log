@@ -3,8 +3,6 @@
 //! Please see [README](https://github.com/s1gtrap/wasm-log/blob/main/README.md) for documentation.
 #![deny(missing_docs)]
 use log::{Level, Log, Metadata, Record};
-use wasm_bindgen::prelude::*;
-use web_sys::console;
 
 /// Specify what to be logged
 pub struct Config {
@@ -59,6 +57,7 @@ impl Config {
 }
 
 /// The log styles
+#[allow(unused)]
 struct Style {
     lvl_trace: String,
     lvl_debug: String,
@@ -70,6 +69,7 @@ struct Style {
 }
 
 impl Style {
+    #[allow(unused)]
     fn new() -> Style {
         let base = String::from("color: white; padding: 0 3px; background:");
         Style {
@@ -87,7 +87,6 @@ impl Style {
 /// The logger
 struct WasmLogger {
     config: Config,
-    style: Style,
 }
 
 impl Log for WasmLogger {
@@ -101,7 +100,6 @@ impl Log for WasmLogger {
 
     fn log(&self, record: &Record<'_>) {
         if self.enabled(record.metadata()) {
-            let style = &self.style;
             let message_separator = match self.config.message_location {
                 MessageLocation::NewLine => "\n",
                 MessageLocation::SameLine => " ",
@@ -116,35 +114,10 @@ impl Log for WasmLogger {
                 message_separator,
                 record.args(),
             );
-            let s = JsValue::from_str(&s);
-            let tgt_style = JsValue::from_str(&style.tgt);
-            let args_style = JsValue::from_str(&style.args);
 
             match record.level() {
-                Level::Trace => console::debug_4(
-                    &s,
-                    &JsValue::from(&style.lvl_trace),
-                    &tgt_style,
-                    &args_style,
-                ),
-                Level::Debug => console::log_4(
-                    &s,
-                    &JsValue::from(&style.lvl_debug),
-                    &tgt_style,
-                    &args_style,
-                ),
-                Level::Info => {
-                    console::info_4(&s, &JsValue::from(&style.lvl_info), &tgt_style, &args_style)
-                }
-                Level::Warn => {
-                    console::warn_4(&s, &JsValue::from(&style.lvl_warn), &tgt_style, &args_style)
-                }
-                Level::Error => console::error_4(
-                    &s,
-                    &JsValue::from(&style.lvl_error),
-                    &tgt_style,
-                    &args_style,
-                ),
+                Level::Trace | Level::Debug | Level::Info => println!("{s}"),
+                Level::Warn | Level::Error => eprintln!("{s}"),
             }
         }
     }
@@ -165,7 +138,7 @@ impl Log for WasmLogger {
 pub fn init(config: Config) {
     match try_init(config) {
         Ok(_) => {}
-        Err(e) => console::error_1(&JsValue::from(e.to_string())),
+        Err(e) => println!("{e:?}"),
     }
 }
 
@@ -177,10 +150,7 @@ pub fn init(config: Config) {
 /// library has already initialized a global logger.
 pub fn try_init(config: Config) -> Result<(), log::SetLoggerError> {
     let max_level = config.level;
-    let wl = WasmLogger {
-        config,
-        style: Style::new(),
-    };
+    let wl = WasmLogger { config };
 
     match log::set_boxed_logger(Box::new(wl)) {
         Ok(_) => {
