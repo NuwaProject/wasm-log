@@ -105,7 +105,7 @@ impl Log for WasmLogger {
                 MessageLocation::SameLine => " ",
             };
             let s = format!(
-                "%c{}%c {}:{}%c{}{}",
+                "[{}] {}:{} {}{}",
                 record.level(),
                 record.file().unwrap_or_else(|| record.target()),
                 record
